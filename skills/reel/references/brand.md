@@ -17,18 +17,18 @@ Anything still marked TODO triggers the setup questions.
 
 ## Look
 
-The defaults below are the palette of the worked example (`example/`). Keep them, or replace them with yours.
+The defaults below are a neutral palette (graphite, soft white, one cool-blue accent), the same one the worked example (`example/`) uses. Keep them, or replace them with your brand colours.
 
 | Token | Default | Used for |
 |---|---|---|
-| ground | `#081812` | background |
-| ink | `#F4EFE2` | text, glass tint |
-| accent | `#D9714A` | the AI glow and the CTA keyword only, one per frame |
-| chip | `#3F6B52` | caption word highlight, chips |
-| bloom 1 | `#3F6B52` | soft light upper left |
-| bloom 2 | `#1D4230` | soft light lower right |
-| secondary text | `#A8B5A6` | small labels (use `rgb(198,208,196)` on glass for contrast) |
-| near-black | `#040D09` | shadows, text on light chips |
+| ground | `#0E1116` | background (graphite) |
+| ink | `#F5F5F2` | text, glass tint |
+| accent | `#4C8DFF` | the AI glow and the CTA keyword only, one per frame |
+| chip | `#34507A` | caption word highlight, chips |
+| bloom 1 | `#34507A` | soft light upper left |
+| bloom 2 | `#1E2A40` | soft light lower right |
+| secondary text | `#A3ABB8` | small labels (use `rgb(200,206,216)` on glass for contrast) |
+| near-black | `#07090C` | shadows, text on light chips |
 
 Fonts (all free on Google Fonts; the skill downloads them as woff2 into `public/fonts/`):
 - Headlines: Archivo Black, caps.

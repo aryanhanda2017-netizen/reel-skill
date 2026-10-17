@@ -2,6 +2,10 @@
 
 This is the skill I use to make my Instagram Reels, with everything specific to my business taken out. You type `/reel` and a topic, and Claude takes it all the way to a finished vertical video, plus its caption and its cover.
 
+![Six frames from the example reel: headline beats, the agent loop, the comment-keyword CTA and the end card](assets/example-frames.jpg)
+
+*Frames from the worked example in `skills/reel/example/`, in the default neutral palette.*
+
 What you get for every reel:
 
 - **The video:** 1080x1920, about 30 seconds. One continuous camera world, frosted-glass cards with real app logos, big headlines, captions with the spoken word highlighted, an AI voiceover and subtle sound design.

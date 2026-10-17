@@ -69,10 +69,10 @@ Moves that read well: a slow push during the hook (1.0 → 1.05), focus glides o
 
 ```css
 .glass {
-  background: linear-gradient(150deg, rgba(244,239,226,0.27) 0%, rgba(244,239,226,0.09) 55%, rgba(244,239,226,0.15) 100%);
+  background: linear-gradient(150deg, rgba(245,245,242,0.27) 0%, rgba(245,245,242,0.09) 55%, rgba(245,245,242,0.15) 100%);
   -webkit-backdrop-filter: blur(22px) saturate(135%); backdrop-filter: blur(22px) saturate(135%);
-  border: 1.5px solid rgba(244,239,226,0.36);
-  box-shadow: inset 1.5px 1.5px 0 rgba(255,255,255,0.40), inset -1px -1px 0 rgba(4,13,9,0.25), 0 34px 70px rgba(4,13,9,0.60);
+  border: 1.5px solid rgba(245,245,242,0.36);
+  box-shadow: inset 1.5px 1.5px 0 rgba(255,255,255,0.40), inset -1px -1px 0 rgba(7,9,12,0.25), 0 34px 70px rgba(7,9,12,0.60);
 }
 ```
 
@@ -88,7 +88,7 @@ Moves that read well: a slow push during the hook (1.0 → 1.05), focus glides o
 - **One headline per beat**, screen space, top-left at (64, 250), ending above ~y 480: one caps line (88 to 120 px) plus one italic phrase (90 to 160 px). Give the italic line `margin-top: 16px; line-height: 1.0`, or `check` flags `content_overlap`. In: y 36 → 0, opacity, blur 10 → 0, 0.42 s `power3.out`. Out: 0.26 s before the next. Keep the words short and true to the voice line.
 - **Captions:** glass pill at top 1376 px, 600-weight sans at 50 px, at most two lines of 3 to 5 words. Build pages as arrays of word indices; highlight the spoken word with the chip colour. Only the CTA keyword gets the accent colour. Pages switch on the first word's start time.
 - **Safe zones** (Instagram UI): foreground inside x 64 to 960, y 250 to 1270; captions y ~1376 to 1560; nothing important below that.
-- Small grey text on glass fails contrast; use `rgb(198,208,196)` (or your equivalent) for 20 px labels.
+- Small grey text on glass fails contrast; use `rgb(200,206,216)` (or your equivalent) for 20 px labels.
 - `check` counts text hidden by a mask as overlapping; hard-cut `visibility` around each headline's on-screen window if needed.
 
 ## 8. Cue timing
@@ -110,7 +110,7 @@ Key every motion cue to the voice. Build `W` from `words.json` (inject the JSON 
 | Cursor and drag ghost invisible | slots had a positive z-index | explicit z-index ladder (section 6) |
 | Small dots under cards before lines draw | round line caps on undrawn dashes | hide the SVG layer until the draw starts |
 | `content_overlap` on two-line headlines | italic glyph box overlapping the caps line | italic `margin-top: 16px; line-height: 1.0` |
-| Contrast 3.8:1 on card subtitles | grey on glass | `rgb(198,208,196)` |
+| Contrast 3.8:1 on card subtitles | grey on glass | `rgb(200,206,216)` |
 | Items under the headline after a camera push | the world moved up | fade them out before the push |
 | A node sliding under the headline while the camera is away | focus far from it | fade it out while away, back in on the pull-back |
 | End card showing under a fading DM card | overlapping fades | start the DM fade 0.3 s before the end card |
