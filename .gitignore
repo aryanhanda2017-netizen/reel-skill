@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+renders/
+snapshots/
+.media/
+.hyperframes/
+public/
+__pycache__/
+*.pyc

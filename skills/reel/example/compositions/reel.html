@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+  <head><meta charset="UTF-8"></head>
+  <body>
+    <template>
+      <!-- Worked example for the reel skill: "How an AI agent works" (34 s, 1080x1920). One camera world (#cam),
+           seek-safe I()/G() helpers, headlines and captions keyed to word times (W), CTA comment box, DM card, end card.
+           Needs public/fonts/*.woff2, public/logos/claude.svg + openai.svg, public/audio/voice.wav + sfx.wav (see ../README.md).
+           The colours are the example palette; swap them for yours from references/brand.md. -->
+      <style>
+        @font-face { font-family: "Archivo Black"; src: url("public/fonts/archivo-black-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Poppins"; src: url("public/fonts/poppins-400.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "Poppins"; src: url("public/fonts/poppins-500.woff2") format("woff2"); font-weight: 500; font-display: block; }
+        @font-face { font-family: "Poppins"; src: url("public/fonts/poppins-700.woff2") format("woff2"); font-weight: 600 700; font-display: block; }
+        @font-face { font-family: "EB Garamond"; src: url("public/fonts/eb-garamond-400-italic.woff2") format("woff2"); font-style: italic; font-weight: 400; font-display: block; }
+
+        #root { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; background: #081812; color: #f4efe2; font-family: "Poppins", sans-serif; }
+        #root * { box-sizing: border-box; }
+        #ground { position: absolute; inset: 0; }
+        .bloom { position: absolute; border-radius: 50%; will-change: transform; }
+        #b-moss { width: 1300px; height: 1300px; left: -420px; top: -260px; background: radial-gradient(circle, rgba(63,107,82,0.55) 0%, rgba(63,107,82,0.18) 45%, rgba(63,107,82,0) 70%); }
+        #b-pine { width: 1400px; height: 1400px; left: 260px; top: 980px; background: radial-gradient(circle, rgba(29,66,48,0.85) 0%, rgba(29,66,48,0.25) 50%, rgba(29,66,48,0) 72%); }
+        #b-sage { width: 1000px; height: 900px; left: 40px; top: 400px; background: radial-gradient(ellipse, rgba(168,181,166,0.20) 0%, rgba(63,107,82,0.22) 40%, rgba(63,107,82,0) 70%); }
+        #grid { position: absolute; inset: 0; opacity: 0.22;
+          background-image: linear-gradient(rgba(63,107,82,0.55) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(63,107,82,0.55) 1.5px, transparent 1.5px);
+          background-size: 72px 72px; background-position: 36px 36px;
+          -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 55%, #000 30%, transparent 75%); mask-image: radial-gradient(ellipse 70% 55% at 50% 55%, #000 30%, transparent 75%); }
+
+        #cam { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 0 0; will-change: transform; }
+        .layer { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; overflow: visible; }
+        #loop-svg { z-index: 0; } .node { z-index: 3; } #orb { z-index: 7; }
+
+        .glass {
+          background: linear-gradient(150deg, rgba(244,239,226,0.27) 0%, rgba(244,239,226,0.09) 55%, rgba(244,239,226,0.15) 100%);
+          -webkit-backdrop-filter: blur(22px) saturate(135%); backdrop-filter: blur(22px) saturate(135%);
+          border: 1.5px solid rgba(244,239,226,0.36);
+          box-shadow: inset 1.5px 1.5px 0 rgba(255,255,255,0.40), inset -1px -1px 0 rgba(4,13,9,0.25), 0 34px 70px rgba(4,13,9,0.60);
+        }
+        .sheen { position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(120% 70% at 18% 0%, rgba(255,255,255,0.22), rgba(255,255,255,0) 55%); }
+        .node { position: absolute; will-change: transform, opacity; }
+        .node .face { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+        .node svg.ico { width: 84px; height: 84px; }
+        .node .nl { font: 500 24px/1 "Poppins"; letter-spacing: 0.16em; text-transform: uppercase; color: #f4efe2; }
+        .node .ns { font: 500 20px/1.2 "Poppins"; color: rgb(198,208,196); text-align: center; }
+        #n-brain { border-radius: 50%; }
+        #n-tools, #n-memory { border-radius: 40px; }
+        #brain-bloom { position: absolute; width: 640px; height: 640px; left: -140px; top: -140px; border-radius: 50%; background: radial-gradient(circle, rgba(217,113,74,0.58) 0%, rgba(217,113,74,0.20) 32%, rgba(217,113,74,0) 62%); z-index: 2; pointer-events: none; }
+        .step { position: absolute; z-index: 5; padding: 8px 18px; border-radius: 999px; font: 600 24px/1 "Poppins"; letter-spacing: 0.1em; text-transform: uppercase; color: #f4efe2; background: rgba(4,13,9,0.62); border: 1.5px solid rgba(244,239,226,0.30); white-space: nowrap; }
+
+        #screen { position: absolute; inset: 0; }
+        .hl { position: absolute; left: 64px; top: 250px; width: 952px; }
+        .hl .a { display: block; font-family: "Archivo Black"; text-transform: uppercase; line-height: 0.98; letter-spacing: -0.01em; color: #f4efe2; white-space: nowrap; }
+        .hl .i { display: block; font-family: "EB Garamond"; font-style: italic; line-height: 1.0; color: #f4efe2; white-space: nowrap; margin-top: 16px; }
+
+        .cap { position: absolute; left: 50%; top: 1376px; transform: translateX(-50%); padding: 22px 40px 26px; border-radius: 40px; text-align: center; white-space: nowrap; }
+        .cap .ln { display: block; font: 600 50px/1.28 "Poppins"; color: #f4efe2; }
+        .w { display: inline-block; padding: 0 9px; margin: 0 -3px; border-radius: 12px; }
+        #grain { position: absolute; inset: 0; width: 1080px; height: 1920px; opacity: 0.09; mix-blend-mode: overlay; pointer-events: none; }
+
+        .lgo { position: absolute; width: 150px; height: 150px; border-radius: 36px; z-index: 4; display: flex; align-items: center; justify-content: center; }
+        .lgo img { position: relative; width: 84px; height: 84px; object-fit: contain; }
+        .tchip { position: absolute; z-index: 6; padding: 14px 24px; border-radius: 26px; font: 600 30px/1 "Poppins"; color: #f4efe2; white-space: nowrap; }
+        #cbox { position: absolute; left: 100px; top: 700px; width: 880px; height: 128px; border-radius: 999px; display: flex; align-items: center; padding: 0 22px 0 28px; gap: 22px; }
+        #cbox .me { width: 72px; height: 72px; border-radius: 50%; background: rgba(244,239,226,0.18); border: 1.5px solid rgba(244,239,226,0.4); flex: none; display: flex; align-items: center; justify-content: center; }
+        #cbox .field { position: relative; flex: 1; height: 72px; }
+        #cph, #ctyped { position: absolute; left: 0; top: 0; height: 72px; display: flex; align-items: center; }
+        #cph { font: 500 34px/1 "Poppins"; color: rgba(168,181,166,0.9); }
+        #ctyped { font: 600 46px/1 "Poppins"; color: #f4efe2; letter-spacing: 0.04em; }
+        #csend { width: 88px; height: 88px; border-radius: 50%; background: #f4efe2; display: flex; align-items: center; justify-content: center; flex: none; }
+        #dm { position: absolute; left: 90px; top: 640px; width: 900px; border-radius: 40px; padding: 34px 36px 36px; }
+        #dm .head { display: flex; align-items: center; gap: 18px; }
+        #dm .head .av { width: 64px; height: 64px; border-radius: 50%; background: #3f6b52; border: 1.5px solid rgba(244,239,226,0.4); }
+        #dm .who { font: 600 32px/1 "Poppins"; color: #f4efe2; }
+        #dm .when { font: 500 24px/1 "Poppins"; color: rgb(198,208,196); margin-left: 6px; }
+        #dm .msg { font: 500 34px/1.3 "Poppins"; color: #f4efe2; margin-top: 22px; }
+        .lk { margin-top: 18px; border-radius: 26px; padding: 22px 28px; background: rgba(4,13,9,0.55); border: 1.5px solid rgba(244,239,226,0.22); }
+        .lk .t { font: 400 34px/1 "Archivo Black"; text-transform: uppercase; color: #f4efe2; }
+        .lk .u { font: 500 24px/1 "Poppins"; color: rgb(198,208,196); margin-top: 10px; }
+        #end { position: absolute; inset: 0; }
+        #end-bloom { position: absolute; width: 1700px; height: 1700px; left: -310px; top: 560px; border-radius: 50%; background: radial-gradient(circle, rgba(217,113,74,0.42) 0%, rgba(217,113,74,0.14) 32%, rgba(29,66,48,0.30) 52%, rgba(8,24,18,0) 70%); }
+        #end-c { position: absolute; left: 0; right: 0; top: 640px; text-align: center; font: 400 140px/1 "Archivo Black"; text-transform: uppercase; color: #f4efe2; letter-spacing: -0.01em; }
+        #end-a { position: absolute; left: 0; right: 0; top: 790px; text-align: center; font: 400 190px/1 "Archivo Black"; text-transform: uppercase; color: #d9714a; letter-spacing: -0.02em; }
+        #end-sub { position: absolute; left: 0; right: 0; top: 1030px; text-align: center; font: 500 34px/1.3 "Poppins"; color: rgba(244,239,226,0.9); }
+        #end-mark { position: absolute; left: 0; right: 0; top: 1150px; text-align: center; font: 600 40px/1 "Poppins"; color: #f4efe2; letter-spacing: 0.02em; }
+      </style>
+
+      <div id="root" data-composition-id="reel" data-width="1080" data-height="1920">
+        <div id="ground">
+          <div class="bloom" id="b-moss"></div><div class="bloom" id="b-pine"></div><div class="bloom" id="b-sage"></div><div id="grid"></div>
+        </div>
+
+        <div id="cam" data-layout-allow-overflow>
+          <svg class="layer" id="loop-svg" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+            <defs><filter id="glowf" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter></defs>
+            <g id="loop-tubes"></g><g id="loop-light"></g><g id="loop-dots"></g>
+          </svg>
+          <div id="brain-bloom" style="left:220px;top:260px"></div>
+          <div class="node glass" id="n-brain" style="left:420px;top:460px;width:240px;height:240px;">
+            <div class="sheen"></div>
+            <div class="face">
+              <svg class="ico" viewBox="0 0 84 84"><path d="M42 8 L47 31 L70 36 L47 41 L42 64 L37 41 L14 36 L37 31 Z" fill="#d9714a"/><path d="M64 52 L66 60 L74 62 L66 64 L64 72 L62 64 L54 62 L62 60 Z" fill="#f4efe2" opacity="0.9"/></svg>
+              <div class="nl">Brain</div>
+            </div>
+          </div>
+          <div class="node glass" id="n-tools" style="left:700px;top:905px;width:260px;height:230px;">
+            <div class="sheen"></div>
+            <div class="face">
+              <svg class="ico" viewBox="0 0 84 84" fill="none" stroke="#f4efe2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M54 14 a16 16 0 0 0 -4 22 L14 72 a6 6 0 0 0 8 8 L58 44 a16 16 0 0 0 22 -4 l-10 10 -10 -4 -4 -10 Z"/></svg>
+              <div class="nl">Tools</div><div class="ns">search · email · files</div>
+            </div>
+          </div>
+          <div class="node glass" id="n-memory" style="left:120px;top:905px;width:260px;height:230px;">
+            <div class="sheen"></div>
+            <div class="face">
+              <svg class="ico" viewBox="0 0 84 84" fill="none" stroke="#f4efe2" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 h28 l14 14 v50 a4 4 0 0 1 -4 4 h-38 a4 4 0 0 1 -4 -4 v-60 a4 4 0 0 1 4 -4 Z"/><path d="M50 10 v14 h14"/><path d="M30 52 l9 9 l16 -18"/></svg>
+              <div class="nl">Memory</div><div class="ns">files · chat</div>
+            </div>
+          </div>
+          <div class="step" id="s1" style="left:726px;top:690px;">1 Pick</div>
+          <div class="step" id="s2" style="left:490px;top:1082px;">2 Do</div>
+          <div class="step" id="s3" style="left:150px;top:690px;">3 Look</div>
+
+          <div class="lgo glass" id="lg-claude" style="left:175px;top:505px;"><div class="sheen"></div><img src="public/logos/claude.svg" alt="Claude"></div>
+          <div class="lgo glass" id="lg-gpt" style="left:755px;top:505px;"><div class="sheen"></div><img src="public/logos/openai.svg" alt="OpenAI"></div>
+          <div class="tchip glass" id="chip-in" style="left:200px;top:548px;">read text</div>
+          <div class="tchip glass" id="chip-out" style="left:620px;top:548px;">write text</div>
+        </div>
+
+        <div id="screen">
+          <div id="heads"></div>
+
+          <div id="cbox" class="glass">
+            <div class="me"><svg width="40" height="40" viewBox="0 0 56 56"><circle cx="28" cy="20" r="10" fill="rgba(244,239,226,0.85)"/><path d="M8 52 C10 38 46 38 48 52 Z" fill="rgba(244,239,226,0.85)"/></svg></div>
+            <div class="field"><div id="cph">Add a comment…</div><div id="ctyped"><span id="k0">A</span><span id="k1">G</span><span id="k2">E</span><span id="k3">N</span><span id="k4">T</span></div></div>
+            <div id="csend"><svg width="44" height="44" viewBox="0 0 44 44"><path d="M6 22 L38 8 L28 38 L22 25 Z" fill="#040d09"/></svg></div>
+          </div>
+          <div id="dm" class="glass">
+            <div class="head"><div class="av"></div><span class="who">@yourhandle</span><span class="when">· now</span></div>
+            <div class="msg">Here's the guide.</div>
+            <div class="lk" id="lk1"><div class="t">Build your first agent</div><div class="u">Free step-by-step guide</div></div>
+            <div class="lk" id="lk2"><div class="t">The full video</div><div class="u">On YouTube</div></div>
+          </div>
+          <div id="end">
+            <div id="end-bloom"></div>
+            <div id="end-c">Comment</div>
+            <div id="end-a">Agent</div>
+            <div id="end-sub">for the free guide</div>
+            <div id="end-mark">@yourhandle</div>
+          </div>
+          <div id="caps"></div>
+        </div>
+        <svg id="grain" xmlns="http://www.w3.org/2000/svg" width="1080" height="1920">
+          <filter id="grainf"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+          <rect width="100%" height="100%" filter="url(#grainf)"/>
+        </svg>
+      </div>
+
+      <script>
+        (function () {
+          var NS = "http://www.w3.org/2000/svg";
+          var $ = function (id) { return document.getElementById(id); };
+          var tl = gsap.timeline({ paused: true });
+          var ST = new Map();
+          function st(el) { if (!ST.has(el)) ST.set(el, {}); return ST.get(el); }
+          function I(el, props) { Object.assign(st(el), props); tl.set(el, Object.assign({}, props), 0); }
+          function G(el, to, at, dur, ease) {
+            var s = st(el), from = {}; for (var k in to) from[k] = s[k];
+            tl.fromTo(el, from, Object.assign({}, to, { duration: dur, ease: ease || "power2.inOut", immediateRender: false }), at);
+            Object.assign(s, to);
+          }
+
+          // ground drift
+          I($("b-moss"), { x: 0, y: 0 }); G($("b-moss"), { x: 70, y: 50 }, 0, 34, "sine.inOut");
+          I($("b-pine"), { x: 0, y: 0 }); G($("b-pine"), { x: -80, y: -40 }, 0, 34, "sine.inOut");
+
+          var W = [{"t": "An", "s": 0.0, "e": 0.259}, {"t": "AI", "s": 0.259, "e": 0.517}, {"t": "agent", "s": 0.517, "e": 0.97}, {"t": "is", "s": 0.97, "e": 1.228}, {"t": "two", "s": 1.228, "e": 1.552}, {"t": "things.", "s": 1.552, "e": 2.069}, {"t": "A", "s": 2.289, "e": 2.49}, {"t": "brain,", "s": 2.49, "e": 2.961}, {"t": "and", "s": 2.961, "e": 3.296}, {"t": "a", "s": 3.296, "e": 3.498}, {"t": "body.", "s": 3.498, "e": 3.901}, {"t": "The", "s": 4.296, "e": 4.569}, {"t": "brain", "s": 4.569, "e": 4.95}, {"t": "is", "s": 4.95, "e": 5.168}, {"t": "the", "s": 5.168, "e": 5.441}, {"t": "model,", "s": 5.441, "e": 5.822}, {"t": "like", "s": 5.822, "e": 6.149}, {"t": "Claude", "s": 6.149, "e": 6.585}, {"t": "or", "s": 6.585, "e": 6.803}, {"t": "GPT.", "s": 6.803, "e": 7.076}, {"t": "On", "s": 7.442, "e": 7.646}, {"t": "its", "s": 7.646, "e": 7.9}, {"t": "own,", "s": 7.9, "e": 8.155}, {"t": "all", "s": 8.155, "e": 8.41}, {"t": "it", "s": 8.41, "e": 8.613}, {"t": "does", "s": 8.613, "e": 8.919}, {"t": "is", "s": 8.919, "e": 9.123}, {"t": "read", "s": 9.123, "e": 9.428}, {"t": "text", "s": 9.428, "e": 9.734}, {"t": "and", "s": 9.734, "e": 9.988}, {"t": "write", "s": 9.988, "e": 10.345}, {"t": "text", "s": 10.345, "e": 10.65}, {"t": "back.", "s": 10.65, "e": 10.956}, {"t": "The", "s": 11.258, "e": 11.484}, {"t": "body", "s": 11.484, "e": 11.754}, {"t": "is", "s": 11.754, "e": 11.935}, {"t": "everything", "s": 11.935, "e": 12.476}, {"t": "wrapped", "s": 12.476, "e": 12.883}, {"t": "around", "s": 12.883, "e": 13.244}, {"t": "it.", "s": 13.244, "e": 13.424}, {"t": "The", "s": 13.69, "e": 13.912}, {"t": "tools", "s": 13.912, "e": 14.222}, {"t": "it's", "s": 14.222, "e": 14.489}, {"t": "allowed", "s": 14.489, "e": 14.888}, {"t": "to", "s": 14.888, "e": 15.065}, {"t": "use,", "s": 15.065, "e": 15.287}, {"t": "the", "s": 15.502, "e": 15.72}, {"t": "memory", "s": 15.72, "e": 16.068}, {"t": "of", "s": 16.068, "e": 16.242}, {"t": "your", "s": 16.242, "e": 16.504}, {"t": "files", "s": 16.504, "e": 16.809}, {"t": "and", "s": 16.809, "e": 17.026}, {"t": "your", "s": 17.026, "e": 17.288}, {"t": "chat,", "s": 17.288, "e": 17.549}, {"t": "and", "s": 17.711, "e": 17.961}, {"t": "a", "s": 17.961, "e": 18.112}, {"t": "loop.", "s": 18.112, "e": 18.412}, {"t": "The", "s": 18.673, "e": 18.881}, {"t": "loop", "s": 18.881, "e": 19.13}, {"t": "is", "s": 19.13, "e": 19.296}, {"t": "where", "s": 19.296, "e": 19.586}, {"t": "it", "s": 19.586, "e": 19.752}, {"t": "gets", "s": 19.752, "e": 20.001}, {"t": "interesting.", "s": 20.001, "e": 20.541}, {"t": "The", "s": 20.861, "e": 21.079}, {"t": "brain", "s": 21.079, "e": 21.384}, {"t": "picks", "s": 21.384, "e": 21.69}, {"t": "a", "s": 21.69, "e": 21.821}, {"t": "next", "s": 21.821, "e": 22.082}, {"t": "step,", "s": 22.082, "e": 22.344}, {"t": "the", "s": 22.536, "e": 22.735}, {"t": "body", "s": 22.735, "e": 22.973}, {"t": "does", "s": 22.973, "e": 23.212}, {"t": "it,", "s": 23.212, "e": 23.371}, {"t": "the", "s": 23.659, "e": 23.868}, {"t": "result", "s": 23.868, "e": 24.203}, {"t": "goes", "s": 24.203, "e": 24.454}, {"t": "back", "s": 24.454, "e": 24.705}, {"t": "to", "s": 24.705, "e": 24.872}, {"t": "the", "s": 24.872, "e": 25.081}, {"t": "brain,", "s": 25.081, "e": 25.374}, {"t": "and", "s": 25.374, "e": 25.583}, {"t": "it", "s": 25.583, "e": 25.75}, {"t": "picks", "s": 25.75, "e": 26.043}, {"t": "again.", "s": 26.043, "e": 26.336}, {"t": "Over", "s": 26.743, "e": 27.053}, {"t": "and", "s": 27.053, "e": 27.312}, {"t": "over,", "s": 27.312, "e": 27.623}, {"t": "until", "s": 27.623, "e": 27.985}, {"t": "the", "s": 27.985, "e": 28.243}, {"t": "job's", "s": 28.243, "e": 28.606}, {"t": "done.", "s": 28.606, "e": 28.916}, {"t": "Comment", "s": 29.403, "e": 29.834}, {"t": "AGENT", "s": 29.834, "e": 30.265}, {"t": "for", "s": 30.265, "e": 30.504}, {"t": "my", "s": 30.504, "e": 30.696}, {"t": "free", "s": 30.696, "e": 31.079}, {"t": "guide", "s": 31.079, "e": 31.366}, {"t": "to", "s": 31.366, "e": 31.558}, {"t": "build", "s": 31.558, "e": 31.893}, {"t": "one", "s": 31.893, "e": 32.132}, {"t": "yourself.", "s": 32.132, "e": 32.611}];
+          function T(i) { return W[i].s; } function E(i) { return W[i].e; }
+          function F(px, py, S, sx, sy) { return { x: sx - px * S, y: sy - py * S, scale: S }; }
+          var BASE = F(540, 860, 1, 540, 990);
+          var cam = $("cam");
+          I(cam, { x: BASE.x, y: BASE.y, scale: 1, opacity: 1 });
+
+          // ---- loop geometry (world coords) ----
+          function arc(a, b, bulge) {
+            var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1], L = Math.sqrt(dx * dx + dy * dy);
+            return "M" + a[0] + " " + a[1] + " Q " + (mx - dy / L * bulge) + " " + (my + dx / L * bulge) + " " + b[0] + " " + b[1];
+          }
+          var PATHS = [arc([640, 650], [775, 900], -70), arc([700, 1020], [380, 1020], -70), arc([305, 900], [440, 650], -70)];
+          var tubesG = $("loop-tubes"), lightG = $("loop-light"), dotsG = $("loop-dots"), segs = [];
+          PATHS.forEach(function (d) {
+            function mk(stroke, w) { var p = document.createElementNS(NS, "path"); p.setAttribute("d", d); p.setAttribute("fill", "none"); p.setAttribute("stroke", stroke); p.setAttribute("stroke-width", w); p.setAttribute("stroke-linecap", "round"); tubesG.appendChild(p); return p; }
+            var tube = mk("rgba(244,239,226,0.14)", "20"), core = mk("rgba(244,239,226,0.45)", "2.5");
+            var len = tube.getTotalLength(), pts = [];
+            for (var k = 0; k <= 100; k++) { var p = tube.getPointAtLength(len * k / 100); pts.push([p.x, p.y]); }
+            tube.setAttribute("stroke-dasharray", len); core.setAttribute("stroke-dasharray", len);
+            segs.push({ tube: tube, core: core, len: len, pts: pts });
+          });
+          I(tubesG, { opacity: 0 });
+          var arrows = [];
+          segs.forEach(function (sg) {
+            var n = 100, i = 62, a = sg.pts[i - 2], b = sg.pts[i + 2], c = sg.pts[i];
+            var ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
+            var g = document.createElementNS(NS, "path"); g.setAttribute("d", "M -14 -12 L 12 0 L -14 12 Z"); g.setAttribute("fill", "#f4efe2");
+            g.setAttribute("transform", "translate(" + c[0] + " " + c[1] + ") rotate(" + ang + ")"); dotsG.appendChild(g); arrows.push(g); I(g, { opacity: 0 });
+          });
+          var dotGrp = document.createElementNS(NS, "g"); dotsG.appendChild(dotGrp);
+          var glow = document.createElementNS(NS, "circle"); glow.setAttribute("r", "30"); glow.setAttribute("fill", "rgba(217,113,74,0.6)"); glow.setAttribute("filter", "url(#glowf)"); dotGrp.appendChild(glow);
+          var dot = document.createElementNS(NS, "circle"); dot.setAttribute("r", "13"); dot.setAttribute("fill", "#f4efe2"); dotGrp.appendChild(dot);
+          I(dotGrp, { opacity: 0 });
+          var prog = { v: 0 };
+          function place() {
+            var f = prog.v % 3, si = Math.min(2, Math.floor(f)), u = f - si, i = Math.max(0, Math.min(100, Math.round(u * 100))), p = segs[si].pts[i];
+            dot.setAttribute("cx", p[0]); dot.setAttribute("cy", p[1]); glow.setAttribute("cx", p[0]); glow.setAttribute("cy", p[1]);
+          }
+          place();
+          var pv = 0;
+          function P(to, at, dur, ease) {
+            tl.fromTo(prog, { v: pv }, { v: to, duration: dur, ease: ease || "power2.inOut", immediateRender: false, onUpdate: place }, at); pv = to;
+          }
+
+          // ---- node states ----
+          var nBrain = $("n-brain"), nTools = $("n-tools"), nMem = $("n-memory"), bloom = $("brain-bloom");
+          var lgC = $("lg-claude"), lgG = $("lg-gpt"), cIn = $("chip-in"), cOut = $("chip-out");
+          I(nBrain, { opacity: 0, scale: 0.6 }); I(bloom, { opacity: 0, scale: 0.8 });
+          I(nTools, { opacity: 0, scale: 0.9, filter: "blur(5px)" }); I(nMem, { opacity: 0, scale: 0.9, filter: "blur(5px)" });
+          I(lgC, { opacity: 0, scale: 0.7, y: 20 }); I(lgG, { opacity: 0, scale: 0.7, y: 20 });
+          I(cIn, { opacity: 0, x: -50 }); I(cOut, { opacity: 0, x: -20 });
+          var STP = [$("s1"), $("s2"), $("s3")];
+          STP.forEach(function (e) { I(e, { opacity: 0, backgroundColor: "rgba(4,13,9,0.62)", color: "#f4efe2" }); });
+
+          // brain in (hook)
+          G(nBrain, { opacity: 1, scale: 1 }, 0.30, 0.6, "back.out(1.6)");
+          G(bloom, { opacity: 1, scale: 1 }, 0.30, 0.9, "power2.out");
+          G(bloom, { opacity: 0.55, scale: 1.04 }, 1.3, 1.0, "sine.inOut");
+          // "A brain," camera focus
+          G(cam, F(540, 580, 1.3, 540, 830), T(6) - 0.05, 0.7, "power3.inOut");
+          G(bloom, { opacity: 1, scale: 1.12 }, T(7), 0.5, "power2.out");
+          G(bloom, { opacity: 0.7, scale: 1.0 }, T(7) + 0.5, 0.7, "sine.inOut");
+          // "and a body" ghosts
+          G(cam, BASE, T(8) - 0.1, 0.6, "power3.inOut");
+          G(nTools, { opacity: 0.45, scale: 1 }, T(9), 0.5, "power2.out");
+          G(nMem, { opacity: 0.45, scale: 1 }, T(10) - 0.1, 0.5, "power2.out");
+          // "The brain is the model, like Claude or GPT"
+          G(nTools, { opacity: 0 }, T(11) - 0.1, 0.25, "power2.in"); G(nMem, { opacity: 0 }, T(11) - 0.1, 0.25, "power2.in");
+          G(cam, F(540, 580, 1.3, 540, 830), T(12) - 0.3, 0.7, "power3.inOut");
+          G(lgC, { opacity: 1, scale: 1, y: 0 }, T(17) - 0.05, 0.4, "back.out(1.7)");
+          G(lgG, { opacity: 1, scale: 1, y: 0 }, T(19) - 0.1, 0.4, "back.out(1.7)");
+          G(bloom, { opacity: 1, scale: 1.1 }, T(17), 0.4, "power2.out"); G(bloom, { opacity: 0.7, scale: 1.0 }, T(17) + 0.4, 0.6, "sine.inOut");
+          // "On its own... read text ... write text"
+          G(lgC, { opacity: 0, scale: 0.8, y: -10 }, T(20) - 0.15, 0.3, "power2.in"); G(lgG, { opacity: 0, scale: 0.8, y: -10 }, T(20) - 0.15, 0.3, "power2.in");
+          G(cIn, { opacity: 1, x: 0 }, T(27) - 0.35, 0.35, "power3.out");
+          G(cIn, { opacity: 0, x: 100 }, T(29) - 0.05, 0.3, "power2.in");
+          G(bloom, { opacity: 1, scale: 1.14 }, T(29) + 0.15, 0.3, "power2.out"); G(bloom, { opacity: 0.7, scale: 1.0 }, T(29) + 0.45, 0.5, "sine.inOut");
+          G(cOut, { opacity: 1, x: 0 }, T(30) - 0.1, 0.1, "none"); G(cOut, { x: 70 }, T(30) - 0.1, 0.9, "power3.out");
+          G(cOut, { opacity: 0 }, T(32) + 0.1, 0.3, "power2.in");
+          // "The body is everything wrapped around it"
+          G(cam, BASE, T(33) - 0.1, 0.7, "power3.inOut");
+          G(nTools, { opacity: 0.45 }, T(36) - 0.1, 0.4, "power2.out"); G(nMem, { opacity: 0.45 }, T(37) - 0.1, 0.4, "power2.out");
+          G(nBrain, { opacity: 0 }, T(40) - 0.25, 0.3, "power2.in"); G(bloom, { opacity: 0 }, T(40) - 0.25, 0.3, "power2.in");
+          // tools
+          G(cam, F(830, 1020, 1.25, 640, 900), T(40) - 0.15, 0.7, "power3.inOut");
+          G(nTools, { opacity: 1, filter: "blur(0px)", scale: 1.04 }, T(41) - 0.1, 0.4, "power3.out");
+          G(nMem, { opacity: 0.3, filter: "blur(5px)" }, T(41) - 0.1, 0.4, "power2.out");
+          // memory
+          G(cam, F(250, 1020, 1.25, 440, 900), T(46) - 0.15, 0.7, "power3.inOut");
+          G(nMem, { opacity: 1, filter: "blur(0px)", scale: 1.04 }, T(47) - 0.1, 0.4, "power3.out");
+          G(nTools, { opacity: 0.4, filter: "blur(3px)", scale: 1 }, T(47) - 0.1, 0.4, "power2.out");
+          // "and a loop": pull back, draw the ring
+          G(cam, BASE, T(54) - 0.2, 0.7, "power3.inOut");
+          G(nBrain, { opacity: 1 }, T(54) - 0.15, 0.4, "power2.out"); G(bloom, { opacity: 0.7 }, T(54) - 0.15, 0.4, "power2.out");
+          G(nTools, { opacity: 1, filter: "blur(0px)" }, T(54) - 0.1, 0.4, "power2.out"); G(nMem, { scale: 1, opacity: 1 }, T(54) - 0.1, 0.4, "power2.out");
+          I(tubesG, { opacity: 0 }); G(tubesG, { opacity: 1 }, T(54), 0.05, "none");
+          segs.forEach(function (sg, k) {
+            var a = T(54) + k * 0.22;
+            [sg.tube, sg.core].forEach(function (p) {
+              tl.fromTo(p, { attr: { "stroke-dashoffset": sg.len } }, { attr: { "stroke-dashoffset": 0 }, duration: 0.5, ease: "power2.inOut", immediateRender: true }, a);
+            });
+            G(arrows[k], { opacity: 1 }, a + 0.45, 0.2, "power2.out");
+          });
+          // dot + labels
+          STP.forEach(function (e, k) { G(e, { opacity: 1 }, T(57) + k * 0.1, 0.3, "power2.out"); });
+          G(dotGrp, { opacity: 1 }, T(57), 0.3, "power2.out");
+          G(cam, F(540, 860, 1.04, 540, 990), T(57), 2.2, "sine.inOut");
+          function lit(k, at, dur) {
+            G(STP[k], { backgroundColor: "#f4efe2", color: "#040d09" }, at, 0.2, "power2.out");
+            G(STP[k], { backgroundColor: "rgba(4,13,9,0.62)", color: "#f4efe2" }, at + dur, 0.3, "power2.in");
+          }
+          function pulse(at) { G(bloom, { opacity: 1, scale: 1.16 }, at, 0.3, "power2.out"); G(bloom, { opacity: 0.7, scale: 1.0 }, at + 0.3, 0.5, "sine.inOut"); }
+          // pick -> do -> look, one slow lap on the words
+          G(cam, BASE, T(64) - 0.2, 0.6, "power2.inOut");
+          pulse(T(65)); lit(0, T(66), 0.9);
+          P(1, T(66) - 0.05, T(70) - T(66) + 0.05, "power2.inOut");                      // brain -> tools
+          lit(1, T(71), 0.7);
+          P(2, T(72) + 0.1, T(75) - T(72), "power2.inOut");                               // tools -> memory
+          P(3, T(77) - 0.1, T(80) - T(77) + 0.4, "power2.inOut");                         // memory -> brain
+          lit(2, T(76), 1.0); pulse(T(80) + 0.2);
+          pulse(T(83)); lit(0, T(83), 0.6);
+          // "Over and over": fast laps
+          P(10, T(85), T(91) - T(85) + 0.2, "power1.inOut");
+          [0, 1, 2, 0, 1, 2].forEach(function (k, j) { var a = T(85) + 0.3 + j * 0.33; lit(k, a, 0.26); });
+          G(cam, F(540, 860, 1.08, 540, 990), T(85), T(91) - T(85) + 0.3, "sine.inOut");
+          // hand over to CTA
+          G(cam, { opacity: 0 }, T(91) + 0.35, 0.35, "power2.in");
+          G(dotGrp, { opacity: 0 }, T(91) + 0.3, 0.2, "power2.in");
+
+          // ---- headlines ----
+          var headsEl = $("heads");
+          function head(id, html) { var d = document.createElement("div"); d.className = "hl"; d.id = id; d.innerHTML = html; headsEl.appendChild(d); return d; }
+          function A(t, px, color) { return '<span class="a" style="font-size:' + px + 'px' + (color ? ';color:' + color : '') + '">' + t + '</span>'; }
+          function Iw(t, px) { return '<span class="i" style="font-size:' + px + 'px">' + t + '</span>'; }
+          var H = [
+            [head("h0", A("An AI agent", 104) + Iw("is two things.", 134)), 0.12, E(5) + 0.1],
+            [head("h1", A("A brain,", 120) + Iw("and a body.", 140)), T(6) - 0.05, E(10) + 0.2],
+            [head("h2", A("The brain", 110) + Iw("is the model.", 134)), T(11), E(19) + 0.2],
+            [head("h3", A("Text in.", 120) + Iw("Text out.", 150)), T(20), E(32) + 0.2],
+            [head("h4", A("The body", 110) + Iw("wrapped around it.", 118)), T(33), E(39) + 0.1],
+            [head("h5", A("The tools", 110) + Iw("it's allowed to use.", 100)), T(40), E(45) + 0.1],
+            [head("h6", A("The memory", 110) + Iw("of your files and chat.", 90)), T(46), E(53) + 0.1],
+            [head("h7", A("And a", 100) + Iw("loop.", 160)), T(54), E(56) + 0.2],
+            [head("h8", A("Where it", 100) + Iw("gets interesting.", 110)), T(57), E(63) + 0.2],
+            [head("h9", A("Brain", 104) + Iw("picks a step.", 130)), T(64), E(69) + 0.1],
+            [head("h10", A("Body", 104) + Iw("does it.", 140)), T(70), E(73) + 0.1],
+            [head("h11", A("Result goes", 100) + Iw("back to the brain.", 110)), T(74), E(80) + 0.1],
+            [head("h12", A("Picks", 104) + Iw("again.", 150)), T(81), E(84) + 0.2],
+            [head("h13", A("Pick. Do. Look.", 104) + Iw("Repeat.", 150)), T(85), E(91) + 0.2],
+            [head("h14", A("Comment", 112) + A("Agent", 150, "#d9714a")), T(92), T(96) - 0.1],
+            [head("h15", A("Build one", 104) + Iw("yourself.", 150)), T(96), E(101) + 0.2]
+          ];
+          H.forEach(function (h) {
+            var el = h[0], a = h[1], b = h[2];
+            I(el, { opacity: 0, y: 36, filter: "blur(10px)" });
+            G(el, { opacity: 1, y: 0, filter: "blur(0px)" }, a, 0.42, "power3.out");
+            G(el, { opacity: 0, y: -24, filter: "blur(6px)" }, b - 0.26, 0.26, "power2.in");
+          });
+
+          // ---- CTA: comment box, typed keyword, DM, end card ----
+          var cbox = $("cbox"), dm = $("dm"), endc = $("end");
+          var tStart = T(92) - 0.05, tType = T(93), tSend = E(93) + 0.28, tDm = T(96) - 0.05, tEnd = E(101) + 0.1;
+          I(cbox, { opacity: 0, y: 40, scale: 0.94 }); I($("cph"), { opacity: 1 });
+          G(cbox, { opacity: 1, y: 0, scale: 1 }, tStart, 0.4, "power3.out");
+          for (var k = 0; k < 5; k++) { I($("k" + k), { opacity: 0 }); G($("k" + k), { opacity: 1 }, tType + k * 0.065, 0.02, "none"); }
+          G($("cph"), { opacity: 0 }, tType - 0.02, 0.05, "none");
+          G(cbox, { scale: 0.96 }, tSend, 0.08, "power2.in"); G(cbox, { scale: 0.9, opacity: 0 }, tSend + 0.08, 0.22, "power2.in");
+          I(dm, { opacity: 0, y: 70, scale: 0.94, clipPath: "inset(0% 0% 100% 0% round 40px)" });
+          I($("lk1"), { opacity: 0, y: 14 }); I($("lk2"), { opacity: 0, y: 14 });
+          G(dm, { opacity: 1, y: 0, scale: 1, clipPath: "inset(0% 0% 0% 0% round 40px)" }, tDm, 0.55, "power3.out");
+          G($("lk1"), { opacity: 1, y: 0 }, tDm + 0.3, 0.3, "power2.out"); G($("lk2"), { opacity: 1, y: 0 }, tDm + 0.5, 0.3, "power2.out");
+          G(dm, { opacity: 0, y: -20 }, tEnd - 0.3, 0.3, "power2.in");
+          I(endc, { opacity: 0 }); G(endc, { opacity: 1 }, tEnd + 0.05, 0.4, "power2.out");
+
+          // ---- captions: one pill per phrase, spoken word on a moss chip, the keyword (word 93) on terracotta ----
+          var capsEl = $("caps"), pages = [], cur = [];
+          for (var i = 0; i < W.length; i++) {
+            cur.push(i);
+            var last = /[.,]$/.test(W[i].t), len = cur.map(function (j) { return W[j].t; }).join(" ").length;
+            if ((last && cur.length >= 2) || cur.length >= 5 || len > 28 || i === W.length - 1) { pages.push(cur); cur = []; }
+          }
+          pages.forEach(function (idx, pi) {
+            var p = document.createElement("div"); p.className = "cap glass"; p.id = "cap" + pi;
+            var ln = document.createElement("span"); ln.className = "ln"; p.appendChild(ln);
+            idx.forEach(function (j) { var w = document.createElement("span"); w.className = "w"; w.id = "w" + j; w.textContent = W[j].t; ln.appendChild(w); });
+            capsEl.appendChild(p);
+            var a = W[idx[0]].s - 0.04, b = W[idx[idx.length - 1]].e + 0.06;
+            if (pi < pages.length - 1) b = Math.min(b, W[pages[pi + 1][0]].s - 0.02);
+            I(p, { opacity: 0, y: 12 });
+            G(p, { opacity: 1, y: 0 }, a, 0.14, "power2.out");
+            G(p, { opacity: 0, y: -6 }, Math.max(a + 0.2, b - 0.1), 0.1, "power2.in");
+            idx.forEach(function (j) {
+              var w = $("w" + j), col = (j === 93) ? "#d9714a" : "#3f6b52";
+              I(w, { backgroundColor: "rgba(63,107,82,0)" });
+              G(w, { backgroundColor: col }, W[j].s, 0.06, "none");
+              G(w, { backgroundColor: "rgba(63,107,82,0)" }, W[j].e, 0.08, "none");
+            });
+          });
+
+          window.__timelines = window.__timelines || {};
+          window.__timelines["reel"] = tl;
+        })();
+      </script>
+    </template>
+  </body>
+</html>

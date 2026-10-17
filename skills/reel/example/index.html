@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1080, height=1920">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #081812; }
+      #root { width: 100%; height: 100%; position: relative; overflow: hidden; background: #081812; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="34" data-width="1080" data-height="1920">
+      <div id="reel" data-composition-id="reel" data-composition-src="compositions/reel.html" data-start="0" data-duration="34" data-track-index="0" data-width="1080" data-height="1920"></div>
+      <audio id="vo" src="public/audio/voice.wav" data-start="0" data-duration="32.61" data-track-index="1" data-volume="1"></audio>
+      <audio id="sfx" src="public/audio/sfx.wav" data-start="0" data-duration="34" data-track-index="2" data-volume="0.6"></audio>
+    </div>
+    <script>
+      window.__timelines["main"] = gsap.timeline({ paused: true });
+    </script>
+  </body>
+</html>
