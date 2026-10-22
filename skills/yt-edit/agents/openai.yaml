@@ -1,0 +1,4 @@
+interface:
+  display_name: "YT Edit"
+  short_description: "Edit narrated videos with timed captions and cards"
+  default_prompt: "Use $yt-edit to plan and edit my video and screen recordings, then deliver the MP4 and YouTube description."

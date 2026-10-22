@@ -1,3 +1,21 @@
+# Video editing skills for Claude Code and Codex
+
+Two free skills from my video workflow:
+
+| Skill | Use it for | Guide |
+|---|---|---|
+| `/yt-edit` | Your narrated YouTube rough cut: captions, section cards, callouts and screen recordings | [Install and use yt-edit](YT-EDIT.md) |
+| `/reel` | Faceless vertical videos with voiceover, captions and a cover | Full guide below |
+
+Install the skill you want:
+
+```bash
+npx skills add aryanhanda2017-netizen/reel-skill --skill yt-edit
+npx skills add aryanhanda2017-netizen/reel-skill --skill reel
+```
+
+For `/yt-edit`, you need Python 3.9+, Node.js 22+, ffmpeg and ffprobe. The core workflow needs no paid API account. See [validation and limits](YT-EDIT-VALIDATION.md). In Codex, invoke it with `$yt-edit`.
+
 # /reel: a Claude Code skill for faceless short videos
 
 This is the skill I use to make my Instagram Reels, with everything specific to my business taken out. You type `/reel` and a topic, and Claude takes it all the way to a finished vertical video, plus its caption and its cover.

@@ -7,3 +7,8 @@ snapshots/
 public/
 __pycache__/
 *.pyc
+
+# yt-edit local demo output
+/demo-project/
+/demo-project-synthetic-source.mp4
+/demo-project-fixture-words.json
